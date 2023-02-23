@@ -42,8 +42,12 @@ namespace Lab1PlaceGroup
 
                 // Get the room's center point
                 XYZ sourceCenter = GetRoomCenter(room);
-                string coords = "X = " + sourceCenter.X.ToString() + "\r\n" + "Y = " + sourceCenter.Y.ToString() + "\r\n" + "Z = " + sourceCenter.Z.ToString();
-                TaskDialog.Show("Source room Center", coords);
+                /*    string coords = "X = " + sourceCenter.X.ToString() + "\r\n" + "Y = " + sourceCenter.Y.ToString() + "\r\n" + "Z = " + sourceCenter.Z.ToString(); 
+                    TaskDialog.Show("Source room Center", coords);*/
+
+                // Ask the user to pick target rooms
+                RoomPickFilter roomPickFilter = new RoomPickFilter();
+                IList<Reference> rooms = sel.PickObjects(ObjectType.Element, roomPickFilter, "Select target rooms for duplicate furniture group");
 
                 //Pick point
                 //   XYZ point = sel.PickPoint("Please pick a point to place group");
@@ -53,9 +57,10 @@ namespace Lab1PlaceGroup
                 trans.Start("Lab");
                 // doc.Create.PlaceGroup(point, group.GroupType);
 
-                // Calculate the new group's position
-                XYZ groupLocation = sourceCenter + new XYZ(20, 0, 0);
-                doc.Create.PlaceGroup(groupLocation, group.GroupType);
+                /*   // Calculate the new group's position
+                   XYZ groupLocation = sourceCenter + new XYZ(20, 0, 0);
+                   doc.Create.PlaceGroup(groupLocation, group.GroupType); */
+                PlaceFurnitureInRooms(doc, rooms, sourceCenter, group.GroupType, origin);
                 trans.Commit();
 
             }
@@ -103,8 +108,6 @@ namespace Lab1PlaceGroup
             }
             return room;
         }
-        /// Return a room's center point coordinates.
-        /// Z value is equal to the bottom of the room
         public XYZ GetRoomCenter(Room room)
         {
             // Get the room center point.
@@ -113,6 +116,31 @@ namespace Lab1PlaceGroup
             XYZ roomCenter = new XYZ(boundCenter.X, boundCenter.Y, locPt.Point.Z);
             return roomCenter;
         }
+        public class RoomPickFilter : ISelectionFilter
+        {
+            public bool AllowElement(Element e)
+            {
+                return (e.Category.Id.IntegerValue.Equals((int)BuiltInCategory.OST_Rooms));
+            }
+            public bool AllowReference(Reference r, XYZ p)
+            {
+                return false;
+            }
+        }
+        public void PlaceFurnitureInRooms(Document doc, IList<Reference> rooms, XYZ sourceCenter, GroupType gt, XYZ groupOrigin)
+        {
+            XYZ offset = groupOrigin - sourceCenter;
+            XYZ offsetXY = new XYZ(offset.X, offset.Y, 0);
+            foreach (Reference r in rooms)
+            {
+                Room roomTarget = doc.GetElement(r) as Room;
+                if (roomTarget != null)
+                {
+                    XYZ roomCenter = GetRoomCenter(roomTarget);
+                    Group group = doc.Create.PlaceGroup(roomCenter + offsetXY, gt);
+                }
+            }
+        }
     }
-
 }
+
